@@ -1,6 +1,6 @@
 # Dungeon Stats
 
-A scoreboard after every dungeon or raid, for World of Warcraft: Forever.
+**Made for World of Warcraft: Forever** (client 1.60, interface 16001). A scoreboard after every dungeon or raid.
 
 When you leave a dungeon or raid, a window in Blizzard's own dialog style shows the stars of the run, each with their portrait:
 
@@ -9,11 +9,14 @@ When you leave a dungeon or raid, a window in Blizzard's own dialog style shows 
 - **Most damage taken**
 - **Died most**
 
-Then the **bosses**: which you killed, which beat you and which are still to go (Bosses 3/8). The classic dungeons and raids come with their boss list; in a new WoW Forever dungeon you see the bosses you fought.
+Hover a card to see the **top 5** of that category. The numbers come from the game's own damage meter, so they match what the game counts.
 
-The numbers come from the game's own damage meter, so they match what the game counts. Below them the **loot**: who got which item, in two columns with pages for long lists. The best items come first; a filter in the loot header switches between green, blue or purple and better.
+Then the **bosses**: which you killed, which beat you and which are still to go (Bosses 3/8), each with its face. The classic dungeons and raids come with their boss list; in a new WoW Forever dungeon you see the bosses you fought. A boss's face appears once you have targeted it or moused over it.
 
-- **Post to party** (or raid) shares the scoreboard in group chat.
+Below them the **loot**: who got which item and whether they won it with Need or Greed, in two columns with pages for long lists. The best items come first; a filter in the loot header switches between green, blue or purple and better.
+
+- **Click a player** (a card or a loot row) to whisper them, for example to ask for a trade. Shift-click a loot row to link the item in chat.
+- **Post to party** (or raid) shares the scoreboard and the blue and purple loot in group chat.
 - **Older / Newer** browse your last 100 runs.
 - Dying and running back does not end the run.
 - Coming from ChatBanner 1.0.5? Your saved runs and loot setting are taken over.
@@ -31,6 +34,7 @@ The numbers come from the game's own damage meter, so they match what the game c
 
 - The damage meter's numbers are secret during combat, so the scoreboard opens once the fight is over.
 - Healing done outside of combat is not counted by the game's meter.
+- Made and tested for WoW: Forever only; other clients are not supported.
 
 ## Development
 
