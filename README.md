@@ -9,10 +9,12 @@ When you leave a dungeon or raid, a window in Blizzard's own dialog style shows 
 - **Most damage taken**
 - **Died most**
 
-The numbers come from the game's own damage meter, so they match what the game counts. Below them the **loot**: who got which item, the winning roll and who else needed. The best items come first; a filter in the loot header switches between green, blue or purple and better.
+Then the **bosses**: which you killed, which beat you and which are still to go (Bosses 3/8). The classic dungeons and raids come with their boss list; in a new WoW Forever dungeon you see the bosses you fought.
+
+The numbers come from the game's own damage meter, so they match what the game counts. Below them the **loot**: who got which item, in two columns with pages for long lists. The best items come first; a filter in the loot header switches between green, blue or purple and better.
 
 - **Post to party** (or raid) shares the scoreboard in group chat.
-- **Older / Newer** browse your last 5 runs.
+- **Older / Newer** browse your last 100 runs.
 - Dying and running back does not end the run.
 - Coming from ChatBanner 1.0.5? Your saved runs and loot setting are taken over.
 

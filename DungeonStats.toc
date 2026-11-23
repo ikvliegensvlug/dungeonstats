@@ -2,7 +2,7 @@
 ## Title: Dungeon Stats
 ## Notes: A scoreboard after every dungeon or raid: most damage, healing, damage taken and deaths, with portraits, plus who got which loot.
 ## Author: ikvliegensvlug
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: DungeonStatsDB
 ## IconTexture: Interface\Icons\Ability_MeleeDamage
 ## X-License: MIT
@@ -10,5 +10,6 @@
 
 Core.lua
 Loot.lua
+Bosses.lua
 Stats.lua
 Summary.lua

@@ -92,6 +92,12 @@ local ROLL_FORMATS = {
 }
 
 local rollPatterns
+-- This client starts roll lines with a link to the loot history: "|HlootHistory:9772545|h[Loot]|h: ".
+-- Without it the lines read as on other clients (and its number is not the roll).
+local function stripHistory(s)
+  return (s:gsub("^|HlootHistory:[^|]*|h%[.-%]|h:%s*", ""))
+end
+DS.StripLootHistory = stripHistory
 -- Returns { kind, who, link, roll } for a roll line, or nil. who is a short name.
 local function parseRoll(text)
   if type(text) ~= "string" then return nil end
@@ -99,10 +105,11 @@ local function parseRoll(text)
     rollPatterns = {}
     for _, f in ipairs(ROLL_FORMATS) do
       local fmt = _G[f[1]]
-      local pattern, order = toCapture(type(fmt) == "string" and fmt or f[2])
+      local pattern, order = toCapture(stripHistory(type(fmt) == "string" and fmt or f[2]))
       rollPatterns[#rollPatterns + 1] = { pattern = pattern, order = order, kind = f[3], roles = f[4] }
     end
   end
+  text = stripHistory(text)
   for _, rp in ipairs(rollPatterns) do
     local caps = { text:match(rp.pattern) }
     if caps[1] then
@@ -126,12 +133,18 @@ local function inGroupInstance()
   if not IsInInstance then return nil end
   local inside, kind = IsInInstance()
   if inside and (kind == "party" or kind == "raid") then
-    return (GetInstanceInfo and GetInstanceInfo()) or GetRealZoneText and GetRealZoneText() or "Dungeon"
+    local name, id
+    if GetInstanceInfo then
+      local info = { GetInstanceInfo() }
+      name, id = info[1], tonumber(info[8])
+    end
+    return name or (GetRealZoneText and GetRealZoneText()) or "Dungeon", id
   end
 end
 
 -- The last finished runs, newest first. Older versions kept only one (db.lastLoot).
-local MAX_RUNS = 5
+-- 100 runs: a dungeon takes a few kilobytes in the saved variables, a raid somewhat more
+DS.MAX_RUNS = 100
 function DS:Runs()
   local db = self.db
   db.runs = db.runs or {}
@@ -139,7 +152,7 @@ function DS:Runs()
     table.insert(db.runs, 1, db.lastLoot)
     db.lastLoot = nil
   end
-  while #db.runs > MAX_RUNS do table.remove(db.runs) end
+  while #db.runs > DS.MAX_RUNS do table.remove(db.runs) end
   return db.runs
 end
 
@@ -157,7 +170,16 @@ function DS:FinishRun()
   self.db.run = nil
   run.duration = (time and run.start and (time() - run.start)) or 0
   if self.CollectStats then pcall(self.CollectStats, self, run) end
-  if #run.items > 0 or (self.HasStats and self:HasStats(run)) then
+  -- keep the saved run small: of the rolls only whether an item was won
+  for _, item in ipairs(run.items) do
+    local r = run.rolls and run.rolls[item.link]
+    local roll = r and r.rolls and r.rolls[item.who]
+    if r and r.winner then item.won = true end
+    -- what the one who got it chose: "Need" or "Greed"
+    if roll and roll.kind then item.won, item.wonWith = true, roll.kind end
+  end
+  run.rolls = nil
+  if #run.items > 0 or (self.HasStats and self:HasStats(run)) or (self.HasBosses and self:HasBosses(run)) then
     table.insert(self:Runs(), 1, run)
     self:Runs()   -- keep at most MAX_RUNS
     if self.db.autoOpen and self.OpenSummary then self:OpenSummary(run) end
@@ -170,7 +192,9 @@ function DS:RunSoFar()
   local run = self.db.run
   if not run then return nil end
   local copy = { name = run.name .. " (so far)", items = run.items, rolls = run.rolls,
-                 start = run.start, statsFrom = run.statsFrom, soFar = true }
+                 start = run.start, statsFrom = run.statsFrom, soFar = true,
+                 instanceID = run.instanceID, killed = run.killed, wiped = run.wiped,
+                 bossOrder = run.bossOrder, faces = run.faces }
   copy.duration = (time and run.start and (time() - run.start)) or 0
   if self.CollectStats and not (InCombatLockdown and InCombatLockdown()) then
     pcall(self.CollectStats, self, copy)
@@ -180,14 +204,16 @@ end
 
 -- Called on every zone change: start, continue or finish a run.
 function DS:CheckRun()
-  local name = inGroupInstance()
+  local name, instanceID = inGroupInstance()
   local run = self.db.run
   if name then
     if run and run.name ~= name then self:FinishRun(); run = nil end
+    if run and not run.instanceID then run.instanceID = instanceID end
     if not run then
-      run = { name = name, items = {}, rolls = {}, start = time and time() or 0 }
+      run = { name = name, instanceID = instanceID, items = {}, rolls = {}, start = time and time() or 0 }
       self.db.run = run
       if self.StartStats then self:StartStats(run) end
+      if self.LearnPlayerFaces then pcall(self.LearnPlayerFaces) end
     end
   elseif run then
     -- a ghost running back from the graveyard has not finished the dungeon yet
@@ -236,12 +262,13 @@ local function seenRecently(key, source)
   return false
 end
 
-local function addItem(run, who, link, source)
+local function addItem(run, who, link, source, guid)
   local q = quality(link)
   if q < KEEP_QUALITY then return end
   who = (Ambiguate and Ambiguate(who, "short")) or who
   if seenRecently(who .. link, source) then return end
-  table.insert(run.items, { who = who, link = link, q = q })
+  if guid and (DS.IsSecret and DS.IsSecret(guid) or type(guid) ~= "string" or guid == "") then guid = nil end
+  table.insert(run.items, { who = who, link = link, q = q, guid = guid })
 end
 
 -- Alone, what you take from the loot window is yours; this works even when the
@@ -260,10 +287,10 @@ local function noteSlotTaken(slot)
   local link = lootSlots[slot]
   lootSlots[slot] = nil
   if not (run and link) or (IsInGroup and IsInGroup()) then return end
-  addItem(run, UnitName("player") or "You", link, "window")
+  addItem(run, UnitName("player") or "You", link, "window", UnitGUID and UnitGUID("player"))
 end
 
-function DS:NoteLoot(text)
+function DS:NoteLoot(text, guid)
   local run = self.db.run
   if not run then return end
   if self.IsSecret and self.IsSecret(text) then return end   -- unreadable during a fight
@@ -274,7 +301,9 @@ function DS:NoteLoot(text)
   end
   local who, link = parseLoot(text)
   if not link then return end
-  addItem(run, who or UnitName("player") or "You", link, "chat")
+  -- the line names who got it; its GUID (the event's 12th value) finds them to whisper
+  if not who and not guid then guid = UnitGUID and UnitGUID("player") end
+  addItem(run, who or UnitName("player") or "You", link, "chat", guid)
 end
 
 -- /dstats debug: keep the last loot lines and what Dungeon Stats made of them,
@@ -306,7 +335,7 @@ ev:SetScript("OnEvent", function(...)
   local ok, err = pcall(onEvent, ...)
   if not ok and DS.NoteError then DS:NoteError(err) end
 end)
-onEvent = function(_, event, text)
+onEvent = function(_, event, text, ...)
   if not DS.db then return end
   if event == "LOOT_OPENED" then
     noteLootWindow()
@@ -314,7 +343,7 @@ onEvent = function(_, event, text)
     noteSlotTaken(text)
   elseif event == "CHAT_MSG_LOOT" then
     if DS.db.debug then DS:DebugLoot(text) end
-    DS:NoteLoot(text)
+    DS:NoteLoot(text, (select(11, ...)))
   elseif event == "PLAYER_REGEN_ENABLED" then
     if DS.finishAfterCombat then DS:FinishRun() end
   else

@@ -119,7 +119,7 @@ function DS:InitOptions()
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
   help:SetPoint("TOPLEFT", show, "BOTTOMLEFT", 0, -16)
   help:SetJustifyH("LEFT")
-  help:SetText("/dstats  - this dungeon so far, or the last one\n/dstats last  - the last finished run (Older and Newer browse the last 5)\n/dstats test  - a sample with your group\n/dstats options  - these options")
+  help:SetText("/dstats  - this dungeon so far, or the last one\n/dstats last  - the last finished run (Older and Newer browse the last 100)\n/dstats test  - a sample with your group\n/dstats options  - these options")
 
   panel:SetScript("OnShow", function() DS:RefreshOptions() end)
   if Settings and Settings.RegisterCanvasLayoutCategory then
@@ -160,7 +160,7 @@ end)
 ---------------------------------------------------------------------------
 local HELP = {
   "/dstats  - the scoreboard of this dungeon so far, or of the last one",
-  "/dstats last  - the last finished run (Older and Newer browse the last 5)",
+  "/dstats last  - the last finished run (Older and Newer browse the last 100)",
   "/dstats test  - a sample scoreboard with your group",
   "/dstats options  - the options",
 }
