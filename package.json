@@ -1,0 +1,12 @@
+{
+  "name": "dungeonstats-tests",
+  "private": true,
+  "description": "Offline tests for the Dungeon Stats World of Warcraft add-on (not part of the add-on package).",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "fengari": "0.1.4",
+    "luaparse": "0.3.1"
+  }
+}
